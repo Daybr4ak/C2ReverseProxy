@@ -15,6 +15,8 @@ import (
 var (
 	configini string
 	wg        sync.WaitGroup
+	STATUS    = "reader"
+	dataBuf   = make([]byte, 0, 4096)
 )
 
 const (
@@ -84,9 +86,6 @@ func rconnAccept(rListen net.Listener) {
 	}
 }
 
-var STATUS = "reader"
-var dataBuf = make([]byte, 0, 4096)
-
 // 获取数据
 func handleConn(rconn net.Conn, flag string) {
 	if flag == "lconn" {
@@ -133,41 +132,12 @@ func handleConn(rconn net.Conn, flag string) {
 
 }
 
-// 发送数据
-// func SendData(data []byte, rconn net.Conn) {
-// 	_, err := rconn.Write(dataBuf)
-// }
-
-// global buf1[10000]
-// global buf2[10000]
-// global singal
-// a()  {
-// 	lconn, err := lListen.Accept()
-// 	checkerr(err)
-// 	fmt.Println(reflect.TypeOf(lconn))
-// 	read(buf, lconn,1000);
-// 	singal = 'readed'
-// }
-
-// b() {
-// 	rconn, err := rListen.Accept()
-// 	checkerr(err)
-// 	fmt.Println(rconn)
-// 	read(buf2, lconn,1000);
-// }
-
-// c() {
-// 	while 1:
-// 		if signal == 'readed':
-// 			write(webshellResponse, buf1+buf2, 2000);
-// 		else:
-// 			sleep 3
-// }
-
+// 设置
 func init() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 }
 
+// main函数
 func main() {
 	app := cli.NewApp()
 	app.Name = "DReverseServer"
@@ -183,5 +153,4 @@ func main() {
 	}
 	app.Action = configRun
 	app.Run(os.Args)
-
 }

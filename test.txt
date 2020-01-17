@@ -1,0 +1,52 @@
+// 发送数据
+// func SendData(data []byte, rconn net.Conn) {
+// 	for {
+// 		_, err := rconn.Write(dataBuf)
+// 		if err != nil {
+// 			if err != io.EOF {
+// 				fmt.Println("read error:", err)
+// 			}
+// 			break
+// 		}
+// 	}
+// }
+
+// global buf1[10000]
+// global buf2[10000]
+// global singal
+// a()  {
+// 	lconn, err := lListen.Accept()
+// 	checkerr(err)
+// 	fmt.Println(reflect.TypeOf(lconn))
+// 	read(buf, lconn,1000);
+// 	singal = 'readed'
+// }
+
+// b() {
+// 	rconn, err := rListen.Accept()
+// 	checkerr(err)
+// 	fmt.Println(rconn)
+// 	read(buf2, lconn,1000);
+// }
+
+// c() {
+// 	while 1:
+// 		if signal == 'readed':
+// 			write(webshellResponse, buf1+buf2, 2000);
+// 		else:
+// 			sleep 3
+// }
+
+
+
+$sock = socket_create(AF_INET, SOCK_STREAM, SOL_TCP);
+    @socket_connect($sock, '127.0.0.1', 8888);
+    $msg = 'TO:GET';
+    socket_write($sock,$msg);
+    if (socket_set_option($socket,SOL_SOCKET,SO_SNDTIMEO,array("sec"=>4, "usec"=>0 ) )){
+        $res = socket_read($sock,4096);
+        echo $res;
+    }else{
+        echo "CONNECT TIMEOUT";
+    }
+    socket_close($sock);
