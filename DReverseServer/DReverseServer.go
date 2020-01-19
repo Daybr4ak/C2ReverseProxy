@@ -8,7 +8,6 @@ import (
 )
 
 var (
-	STATUS  = "reader"
 	dataBuf = make([]byte, 0, 4096)
 )
 
@@ -48,10 +47,13 @@ func handleConn(conn net.Conn) {
 				}
 				break
 			}
+		} else if string(tmp[:7]) == "TO:SEND" {
+			fmt.Println("Get tmp:", tmp[7:data])
 		} else {
 			dataBuf = append(dataBuf, tmp[:data]...)
 		}
-		fmt.Println(tmp[:data], STATUS)
+		fmt.Println("tmp:", tmp[:data])
+		fmt.Println("databuf:", dataBuf)
 	}
 }
 
