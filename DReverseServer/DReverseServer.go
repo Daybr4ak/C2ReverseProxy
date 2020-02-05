@@ -45,7 +45,8 @@ func handleConn(conn net.Conn) {
 				fmt.Println(dataBuf)
 				fmt.Println("--------------------------------------------------------------")
 			}
-			_, err = conn.Write(dataBuf)
+			// _, err = conn.Write(dataBuf)
+			_, err = conn.Write([]byte(base64.URLEncoding.EncodeToString(dataBuf)))
 			if err != nil {
 				if err != io.EOF {
 					// fmt.Println("Get Write error:", err)

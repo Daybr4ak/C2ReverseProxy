@@ -5,7 +5,6 @@ ini_set("display_errors","Off");
 $HOST = '127.0.0.1';
 $PORT = 8888;
 
-
 // 检测连接是否成功
 if ($_SERVER['REQUEST_METHOD']==='GET') 
 {
@@ -31,7 +30,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && !empty($_POST['DataType'])){
         socket_write($sock,$msg);
         $res = socket_read($sock,4096);
         if ($res){
-            echo ">".base64_encode($res)."<";
+            echo $res;
         }else{
             echo "NO DATA";
         }
@@ -39,17 +38,8 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && !empty($_POST['DataType'])){
     {   
         $msg = $_POST['Data'];
         $res = socket_write($sock,$msg);
-        echo ($msg);
-        // if ($res){
-        //     echo "Send OK";
-        // }else{
-        //     echo "Send Failed";
-    // }
     }
     socket_close($sock);
-    
 }
-
-
 
 ?>
