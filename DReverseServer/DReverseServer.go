@@ -23,6 +23,7 @@ func checkerr(err error) {
 
 // 获取数据
 func handleConn(conn net.Conn) {
+	defer conn.Close()
 	for {
 		tmp := make([]byte, 1046616)
 		// dataErr := conn.SetDeadline(time.Now().Add(2 * time.Second))

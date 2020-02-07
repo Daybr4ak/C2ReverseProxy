@@ -12,8 +12,6 @@
             outSocket.write(msg.getBytes());
             BufferedReader res = new BufferedReader(new InputStreamReader(inSocket));
             out.print(res.readLine());
-            res.close();
-            outSocket.close();
             socket.close();
         }catch(java.net.ConnectException e){
         }
@@ -26,20 +24,23 @@
             InputStream inSocket = socket.getInputStream();
             OutputStream outSocket = socket.getOutputStream();
             if (request.getParameter("DataType").equals("GetData")){
-                String msg = "TO:GET";
-                outSocket.write(msg.getBytes());
+                PrintWriter msg = new PrintWriter(outSocket);
                 BufferedReader res = new BufferedReader(new InputStreamReader(inSocket));
+                msg.write("TO:GET");
+                msg.flush();
+                socket.shutdownOutput();
                 try {
-                    out.print(res.readLine());
+                    String reply = null;
+                    while(!((reply = res.readLine())==null)){
+                        out.print(res.readLine());
+                    }  
                 }catch(java.io.IOException e) {
                     out.print("NO DATA");
                 }
-                res.close();
             }else if (request.getParameter("DataType").equals("PostData") && !request.getParameter("Data").equals(null)){
                 String msg = request.getParameter("Data");
                 outSocket.write(msg.getBytes());
             }
-            outSocket.close();
             socket.close();
         }catch(java.net.ConnectException e){
         }
