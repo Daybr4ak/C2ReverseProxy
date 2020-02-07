@@ -28,7 +28,7 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && !empty($_POST['DataType'])){
     {
         $msg = 'TO:GET';
         socket_write($sock,$msg);
-        $res = socket_read($sock,4096);
+        $res = socket_read($sock,1046616);
         if ($res){
             echo $res;
         }else{

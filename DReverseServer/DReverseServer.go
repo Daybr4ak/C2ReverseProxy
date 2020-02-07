@@ -9,7 +9,7 @@ import (
 )
 
 var (
-	dataBuf = make([]byte, 0, 4096)
+	dataBuf = make([]byte, 0, 1046616)
 	clients = make(map[string]net.Conn)
 )
 
@@ -56,6 +56,7 @@ func handleConn(conn net.Conn) {
 			dataBuf = append(dataBuf[:0])
 			// }
 		} else if string(tmp[:10]) == "TO:CONNECT" {
+			fmt.Println(string(tmp[:10]))
 			_, err = conn.Write([]byte("CONNECT SUCCESS\n"))
 			if err != nil {
 				if err != io.EOF {
