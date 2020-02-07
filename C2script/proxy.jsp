@@ -10,8 +10,9 @@
             OutputStream outSocket = socket.getOutputStream();
             String msg = "TO:CONNECT";
             outSocket.write(msg.getBytes());
-            BufferedReader res = new BufferedReader(new InputStreamReader(inSocket));
-            out.print(res.readLine());
+            byte[] res = new byte[4096];
+            inSocket.read(res,0,4096);
+            out.print(new String(res));
             socket.close();
         }catch(java.net.ConnectException e){
         }
@@ -24,16 +25,12 @@
             InputStream inSocket = socket.getInputStream();
             OutputStream outSocket = socket.getOutputStream();
             if (request.getParameter("DataType").equals("GetData")){
-                PrintWriter msg = new PrintWriter(outSocket);
-                BufferedReader res = new BufferedReader(new InputStreamReader(inSocket));
-                msg.write("TO:GET");
-                msg.flush();
-                socket.shutdownOutput();
+                String msg = "TO:GET";
+                outSocket.write(msg.getBytes());
+                byte[] res = new byte[1046616];
                 try {
-                    String reply = null;
-                    while(!((reply = res.readLine())==null)){
-                        out.print(res.readLine());
-                    }  
+                    inSocket.read(res,0,1046616);
+                    out.print(new String(res));
                 }catch(java.io.IOException e) {
                     out.print("NO DATA");
                 }
@@ -41,6 +38,7 @@
                 String msg = request.getParameter("Data");
                 outSocket.write(msg.getBytes());
             }
+            outSocket.close();
             socket.close();
         }catch(java.net.ConnectException e){
         }
