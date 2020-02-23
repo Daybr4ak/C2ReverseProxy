@@ -31,4 +31,10 @@ git clone https://github.com/Daybr4ak/DReverseProxy.git
 6、使用建立的Listner生成可执行文件beacon.exe传至目标服务器运行
 7、可以看到CobaltStrike上线。
 ```
+# Bug
+
+一个server端口只支持一个cs上线
+文件上传会导致server阻塞
+
+如果阻塞重启server端就好。。。。  后期准备修改代码重新实现
 
