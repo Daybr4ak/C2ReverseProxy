@@ -3,10 +3,10 @@ ini_set("display_errors","Off");
 //dl("php_sockets.dll");
 
 $HOST = '127.0.0.1';
-$PORT = 8888;
+$PORT = 64535;
 
 // 检测连接是否成功
-if ($_SERVER['REQUEST_METHOD']==='GET') 
+if ($_SERVER['REQUEST_METHOD']==='GET')
 {
     // var_dump(function_exists("socket_create"));
     $sock = socket_create(AF_INET, SOCK_STREAM, SOL_TCP);
@@ -34,10 +34,10 @@ if ($_SERVER['REQUEST_METHOD']==='POST' && !empty($_POST['DataType'])){
         }else{
             echo "NO DATA";
         }
-    }else if ($_POST['DataType'] === 'PostData' && !empty($_POST['Data'])) 
-    {   
+    }else if ($_POST['DataType'] === 'PostData' && !empty($_POST['Data']))
+    {
         $msg = $_POST['Data'];
-        $res = socket_write($sock,$msg);
+        $res = socket_write($sock,"TO:SEND".$msg);
     }
     socket_close($sock);
 }

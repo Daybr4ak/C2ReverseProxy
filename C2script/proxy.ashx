@@ -14,7 +14,7 @@ System.Web.SessionState.IRequiresSessionState
         try
         {
             String HOST = "127.0.0.1";
-            int PORT = 8888;
+            int PORT = 64535;
             if (context.Request.HttpMethod == "GET")
             {
                 Socket socket = new Socket(AddressFamily.InterNetwork,SocketType.Stream, ProtocolType.Tcp);
@@ -44,7 +44,7 @@ System.Web.SessionState.IRequiresSessionState
                         context.Response.Write("NO DATA");
                     }
                 }else if (context.Request.Form.Get("DataType") == "PostData" && context.Request.Form.Get("Data") != null){
-                    byte[] msg = Encoding.UTF8.GetBytes(context.Request.Form.Get("Data"));
+                    byte[] msg = Encoding.UTF8.GetBytes("TO:SEND:"+context.Request.Form.Get("Data"));
                     socket.Send(msg, msg.Length,0);
                 }
                 socket.Close();

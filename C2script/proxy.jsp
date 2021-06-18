@@ -1,7 +1,7 @@
 <%@page import="java.io.*, java.net.*" trimDirectiveWhitespaces="true"%>
 <%
     String HOST = "127.0.0.1";
-    int PORT = 8888;
+    int PORT = 64535;
     String method = request.getMethod();
     if (method == "GET"){
         try{
@@ -35,7 +35,7 @@
                     out.print("NO DATA");
                 }
             }else if (request.getParameter("DataType").equals("PostData") && !request.getParameter("Data").equals(null)){
-                String msg = request.getParameter("Data");
+                String msg = "TO:SEND" + request.getParameter("Data");
                 outSocket.write(msg.getBytes());
             }
             outSocket.close();
